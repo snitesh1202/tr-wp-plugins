@@ -38,7 +38,7 @@ export default function RootLayout({
       >
         {!isAdmin && <Navbar />}
         <PageTransition>
-          <main className={isAdmin ? "" : "min-h-screen pt-32 pb-16"}>
+          <main className={isAdmin ? "" : "min-h-screen pb-16"}>
             {children}
           </main>
         </PageTransition>

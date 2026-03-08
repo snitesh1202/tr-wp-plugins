@@ -29,7 +29,7 @@ const Navbar = () => {
     ]
 
     return (
-        <nav className={`fixed top-0 z-50 w-full transition-all duration-500 ${isScrolled ? "py-4" : "py-8"
+        <nav className={`fixed top-0 z-50 w-full transition-all duration-500 ${isScrolled ? "py-3" : "py-4"
             }`}>
             <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                 <div className={cn(
