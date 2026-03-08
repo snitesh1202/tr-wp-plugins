@@ -23,6 +23,14 @@ const recentOrders = [
 ]
 
 export default function AdminDashboard() {
+    const handleStatClick = (label: string) => {
+        alert(`Navigating to detailed ${label} analytics...`)
+    }
+
+    const handleOrderClick = (id: string) => {
+        alert(`Viewing order: ${id}`)
+    }
+
     return (
         <div className="space-y-12 animate-in fade-in duration-700">
             <header className="space-y-2">
@@ -43,7 +51,8 @@ export default function AdminDashboard() {
                 {stats.map((stat, index) => (
                     <div
                         key={stat.label}
-                        className="group relative overflow-hidden rounded-[2rem] border border-white/[0.05] bg-surface/50 p-8 transition-all hover:border-white/10 hover:bg-surface/80"
+                        onClick={() => handleStatClick(stat.label)}
+                        className="group relative overflow-hidden rounded-[2rem] border border-white/[0.05] bg-surface/50 p-8 transition-all hover:border-white/10 hover:bg-surface/80 cursor-pointer active:scale-[0.98]"
                         style={{ animationDelay: `${index * 100}ms` }}
                     >
                         <div className="relative z-10 flex flex-col gap-6">
@@ -88,7 +97,10 @@ export default function AdminDashboard() {
                             <h3 className="font-heading text-2xl font-bold text-white tracking-tight">Recent Sales</h3>
                             <p className="text-xs text-white/30 font-medium">Monitoring the latest transactions</p>
                         </div>
-                        <button className="rounded-xl px-4 py-2 text-xs font-bold text-accent bg-accent/5 hover:bg-accent/10 transition-all active:scale-95">
+                        <button
+                            onClick={() => alert('Opening full analytics report...')}
+                            className="rounded-xl px-4 py-2 text-xs font-bold text-accent bg-accent/5 hover:bg-accent/10 transition-all active:scale-95"
+                        >
                             View Analytics
                         </button>
                     </div>
@@ -106,7 +118,11 @@ export default function AdminDashboard() {
                                 </thead>
                                 <tbody className="divide-y divide-white/[0.05]">
                                     {recentOrders.map((order) => (
-                                        <tr key={order.id} className="group hover:bg-white/[0.02] transition-colors">
+                                        <tr
+                                            key={order.id}
+                                            onClick={() => handleOrderClick(order.id)}
+                                            className="group hover:bg-white/[0.02] transition-colors cursor-pointer"
+                                        >
                                             <td className="px-8 py-6">
                                                 <div className="flex flex-col">
                                                     <span className="text-sm font-bold text-white group-hover:text-accent transition-colors">{order.customer}</span>
@@ -148,10 +164,13 @@ export default function AdminDashboard() {
                 {/* Conversion Card */}
                 <div className="lg:col-span-4 space-y-6">
                     <h3 className="font-heading text-2xl font-bold text-white px-2 tracking-tight transition-transform">Success Rate</h3>
-                    <div className="group relative aspect-square rounded-[3rem] border border-white/[0.05] bg-gradient-to-br from-surface/80 to-accent/5 p-1 flex flex-col items-center justify-center overflow-hidden transition-all hover:border-accent/20">
+                    <div
+                        onClick={() => alert('Conversion rate data sync required...')}
+                        className="group relative aspect-square rounded-[3rem] border border-white/[0.05] bg-gradient-to-br from-surface/80 to-accent/5 p-1 flex flex-col items-center justify-center overflow-hidden transition-all hover:border-accent/20 cursor-pointer active:scale-[0.98]"
+                    >
                         <TrendingUp className="h-48 w-48 text-accent/[0.03] absolute -right-12 -bottom-12 transition-transform duration-1000 group-hover:scale-110 group-hover:-rotate-12" />
                         <div className="relative text-center space-y-4">
-                            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-3xl bg-accent shadow-2xl shadow-accent/40 mb-6">
+                            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-3xl bg-accent shadow-2xl shadow-accent/40 mb-6 group-hover:shadow-accent/60 transition-all">
                                 <TrendingUp className="h-10 w-10 text-white" />
                             </div>
                             <div className="text-7xl font-black text-white font-heading tracking-tighter">14.2%</div>

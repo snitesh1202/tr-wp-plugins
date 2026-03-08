@@ -1,7 +1,7 @@
 "use client"
 
-import { useState } from "react"
-import { Plus, Search, MoreVertical, Edit2, Trash2, Eye, Package, SlidersHorizontal, ChevronRight } from "lucide-react"
+import { useState, useMemo } from "react"
+import { Plus, Search, MoreVertical, Edit2, Trash2, Eye, Package, SlidersHorizontal, ChevronRight, X } from "lucide-react"
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 
@@ -18,6 +18,23 @@ const mockPlugins = [
 
 export default function AdminPluginsPage() {
     const [plugins, setPlugins] = useState(mockPlugins)
+    const [searchQuery, setSearchQuery] = useState("")
+
+    const filteredPlugins = useMemo(() => {
+        return plugins.filter(plugin =>
+            plugin.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            plugin.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            plugin.version.toLowerCase().includes(searchQuery.toLowerCase())
+        )
+    }, [plugins, searchQuery])
+
+    const handleAction = (action: string, pluginName: string) => {
+        alert(`${action} action triggered for: ${pluginName}`)
+    }
+
+    const handleAddPlugin = () => {
+        alert("Opening 'Add New Plugin' workflow...")
+    }
 
     return (
         <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -34,7 +51,10 @@ export default function AdminPluginsPage() {
                         Centralized control for your marketplace offerings. Update versions, adjust pricing, and curate your plugin catalog.
                     </p>
                 </div>
-                <button className="flex items-center justify-center gap-3 rounded-2xl bg-accent px-8 py-5 text-sm font-black text-white hover:bg-accent/90 transition-all hover:shadow-[0_0_30px_-5px_rgba(59,130,246,0.6)] active:scale-95 group">
+                <button
+                    onClick={handleAddPlugin}
+                    className="flex items-center justify-center gap-3 rounded-2xl bg-accent px-8 py-5 text-sm font-black text-white hover:bg-accent/90 transition-all hover:shadow-[0_0_30px_-5px_rgba(59,130,246,0.6)] active:scale-95 group focus:outline-none focus:ring-2 focus:ring-accent/40"
+                >
                     <Plus className="h-5 w-5 transition-transform group-hover:rotate-90 duration-300" />
                     Add New Plugin
                 </button>
@@ -46,9 +66,19 @@ export default function AdminPluginsPage() {
                     <Search className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-white/20 group-focus-within:text-accent transition-all" />
                     <input
                         type="text"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
                         placeholder="Search by name, category or version..."
-                        className="w-full bg-surface/50 border border-white/[0.05] rounded-[1.5rem] pl-14 pr-6 py-4 text-sm text-white placeholder:text-white/20 outline-none focus:border-accent/40 focus:bg-surface transition-all backdrop-blur-sm"
+                        className="w-full bg-surface/50 border border-white/[0.05] rounded-[1.5rem] pl-14 pr-12 py-4 text-sm text-white placeholder:text-white/20 outline-none focus:border-accent/40 focus:bg-surface transition-all backdrop-blur-sm"
                     />
+                    {searchQuery && (
+                        <button
+                            onClick={() => setSearchQuery("")}
+                            className="absolute right-4 top-1/2 -translate-y-1/2 p-1 text-white/20 hover:text-white transition-colors"
+                        >
+                            <X className="h-4 w-4" />
+                        </button>
+                    )}
                 </div>
                 <div className="flex items-center gap-4">
                     <button className="flex items-center gap-2 rounded-xl bg-white/[0.03] border border-white/[0.05] px-4 py-3 text-xs font-black text-white/40 hover:text-white hover:bg-white/[0.08] transition-all">
@@ -57,13 +87,13 @@ export default function AdminPluginsPage() {
                     </button>
                     <div className="h-8 w-px bg-white/[0.05]" />
                     <div className="flex items-center gap-2 text-white/20 text-[10px] font-black uppercase tracking-[0.2em]">
-                        Total <span className="text-white font-black">{plugins.length}</span> entries
+                        Showing <span className="text-white font-black">{filteredPlugins.length}</span> entries
                     </div>
                 </div>
             </div>
 
             {/* Plugins Table */}
-            <div className="rounded-[2.5rem] border border-white/[0.05] bg-surface/30 backdrop-blur-md overflow-hidden">
+            <div className="rounded-[2.5rem] border border-white/[0.05] bg-surface/30 backdrop-blur-md overflow-hidden min-h-[400px]">
                 <div className="overflow-x-auto">
                     <table className="w-full text-left">
                         <thead>
@@ -76,63 +106,83 @@ export default function AdminPluginsPage() {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-white/[0.05]">
-                            {plugins.map((plugin) => (
-                                <tr key={plugin.id} className="group hover:bg-white/[0.015] transition-all">
-                                    <td className="px-8 py-6">
-                                        <div className="flex items-center gap-4">
-                                            <div className="relative h-14 w-14 overflow-hidden rounded-2xl bg-gradient-to-br from-white/[0.05] to-transparent p-px group-hover:from-accent/20 transition-all">
-                                                <div className="flex h-full w-full items-center justify-center rounded-[0.9rem] bg-[#1a1a24] text-accent group-hover:scale-110 transition-transform">
-                                                    <Package className="h-6 w-6" />
+                            {filteredPlugins.length > 0 ? (
+                                filteredPlugins.map((plugin) => (
+                                    <tr key={plugin.id} className="group hover:bg-white/[0.015] transition-all">
+                                        <td className="px-8 py-6">
+                                            <div className="flex items-center gap-4">
+                                                <div className="relative h-14 w-14 overflow-hidden rounded-2xl bg-gradient-to-br from-white/[0.05] to-transparent p-px group-hover:from-accent/20 transition-all">
+                                                    <div className="flex h-full w-full items-center justify-center rounded-[0.9rem] bg-[#1a1a24] text-accent group-hover:scale-110 transition-transform">
+                                                        <Package className="h-6 w-6" />
+                                                    </div>
+                                                </div>
+                                                <div className="flex flex-col gap-1">
+                                                    <div className="text-sm font-black text-white tracking-tight group-hover:text-accent transition-colors">{plugin.name}</div>
+                                                    <div className={cn(
+                                                        "w-fit rounded-full px-2 py-0.5 text-[9px] font-black uppercase tracking-wider",
+                                                        plugin.status === 'Active' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-amber-500/10 text-amber-400 underline decoration-amber-400/20 underline-offset-2'
+                                                    )}>
+                                                        {plugin.status}
+                                                    </div>
                                                 </div>
                                             </div>
-                                            <div className="flex flex-col gap-1">
-                                                <div className="text-sm font-black text-white tracking-tight group-hover:text-accent transition-colors">{plugin.name}</div>
-                                                <div className={cn(
-                                                    "w-fit rounded-full px-2 py-0.5 text-[9px] font-black uppercase tracking-wider",
-                                                    plugin.status === 'Active' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-amber-500/10 text-amber-400 underline decoration-amber-400/20 underline-offset-2'
-                                                )}>
-                                                    {plugin.status}
-                                                </div>
+                                        </td>
+                                        <td className="px-8 py-6">
+                                            <div className="inline-flex items-center gap-2 rounded-lg bg-white/[0.03] px-3 py-1.5 text-[11px] font-bold text-white/40 group-hover:text-white/60 transition-colors">
+                                                {plugin.category}
                                             </div>
-                                        </div>
-                                    </td>
-                                    <td className="px-8 py-6">
-                                        <div className="inline-flex items-center gap-2 rounded-lg bg-white/[0.03] px-3 py-1.5 text-[11px] font-bold text-white/40 group-hover:text-white/60 transition-colors">
-                                            {plugin.category}
-                                        </div>
-                                    </td>
-                                    <td className="px-8 py-6 text-center">
-                                        <span className="rounded-xl border border-white/[0.05] bg-white/[0.02] px-3 py-1.5 text-[11px] font-black text-white/30 group-hover:text-white/60 group-hover:border-white/10 transition-all uppercase">
-                                            v{plugin.version}
-                                        </span>
-                                    </td>
-                                    <td className="px-8 py-6 text-center">
-                                        <div className="text-base font-black text-white font-heading tracking-tight">{plugin.price}</div>
-                                    </td>
-                                    <td className="px-8 py-6">
-                                        <div className="flex items-center justify-end gap-2">
-                                            <button className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/[0.03] text-white/30 hover:bg-accent/10 hover:text-accent transition-all">
-                                                <Eye className="h-4 w-4" />
-                                            </button>
-                                            <button className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/[0.03] text-white/30 hover:bg-blue-500/10 hover:text-blue-400 transition-all">
-                                                <Edit2 className="h-4 w-4" />
-                                            </button>
-                                            <button className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/[0.03] text-white/30 hover:bg-red-500/10 hover:text-red-400 transition-all">
-                                                <Trash2 className="h-4 w-4" />
-                                            </button>
-                                        </div>
+                                        </td>
+                                        <td className="px-8 py-6 text-center">
+                                            <span className="rounded-xl border border-white/[0.05] bg-white/[0.02] px-3 py-1.5 text-[11px] font-black text-white/30 group-hover:text-white/60 group-hover:border-white/10 transition-all uppercase">
+                                                v{plugin.version}
+                                            </span>
+                                        </td>
+                                        <td className="px-8 py-6 text-center">
+                                            <div className="text-base font-black text-white font-heading tracking-tight">{plugin.price}</div>
+                                        </td>
+                                        <td className="px-8 py-6 text-right">
+                                            <div className="flex items-center justify-end gap-2">
+                                                <button
+                                                    onClick={() => handleAction('View', plugin.name)}
+                                                    className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/[0.03] text-white/30 hover:bg-accent/10 hover:text-accent transition-all cursor-pointer"
+                                                >
+                                                    <Eye className="h-4 w-4" />
+                                                </button>
+                                                <button
+                                                    onClick={() => handleAction('Edit', plugin.name)}
+                                                    className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/[0.03] text-white/30 hover:bg-blue-500/10 hover:text-blue-400 transition-all cursor-pointer"
+                                                >
+                                                    <Edit2 className="h-4 w-4" />
+                                                </button>
+                                                <button
+                                                    onClick={() => handleAction('Delete', plugin.name)}
+                                                    className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/[0.03] text-white/30 hover:bg-red-500/10 hover:text-red-400 transition-all cursor-pointer"
+                                                >
+                                                    <Trash2 className="h-4 w-4" />
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))
+                            ) : (
+                                <tr>
+                                    <td colSpan={5} className="px-8 py-20 text-center text-white/20 font-medium">
+                                        No plugins found matching "{searchQuery}"
                                     </td>
                                 </tr>
-                            ))}
+                            )}
                         </tbody>
                     </table>
                 </div>
-                {/* Empty state or footer if needed */}
+                {/* Footer */}
                 <div className="flex items-center justify-between border-t border-white/[0.05] bg-white/[0.01] px-8 py-5">
                     <p className="text-[10px] font-bold text-white/20 uppercase tracking-[0.2em]">
                         Use keys <kbd className="rounded bg-white/5 px-1.5 py-0.5 border border-white/10">ESC</kbd> to exit detail view
                     </p>
-                    <div className="flex items-center gap-2 text-xs font-bold text-accent hover:underline cursor-pointer group">
+                    <div
+                        onClick={() => alert('Exporting as CSV...')}
+                        className="flex items-center gap-2 text-xs font-bold text-accent hover:underline cursor-pointer group"
+                    >
                         Export as CSV
                         <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
                     </div>

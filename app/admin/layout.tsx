@@ -37,7 +37,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     return (
         <div className="flex min-h-screen bg-background font-inter selection:bg-accent/30">
             {/* Sidebar Desktop */}
-            <aside className="fixed inset-y-0 left-0 w-72 border-r border-white-[0.05] bg-surface/30 backdrop-blur-3xl p-8 hidden lg:flex flex-col z-50">
+            <aside className="fixed inset-y-0 left-0 w-72 border-r border-white/[0.05] bg-surface/30 backdrop-blur-3xl p-8 hidden lg:flex flex-col z-50">
                 <div className="flex items-center gap-4 mb-14 px-2">
                     <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-accent to-blue-600 shadow-lg shadow-accent/20">
                         <Package className="h-5 w-5 text-white" />
