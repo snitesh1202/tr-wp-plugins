@@ -5,6 +5,8 @@ import { useParams, useRouter } from "next/navigation"
 import Link from "next/link"
 import { ArrowLeft, Shield, Lock, CreditCard } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
+// @ts-ignore
+import { load } from "@cashfreepayments/cashfree-js"
 
 const CheckoutPage = () => {
     const { slug } = useParams()
@@ -60,7 +62,12 @@ const CheckoutPage = () => {
             const data = await response.json()
 
             if (data.payment_session_id) {
-                window.location.href = `https://payments.cashfree.com/checkouts/v1/${data.payment_session_id}`
+                const cashfree = await load({
+                    mode: process.env.NODE_ENV === "production" ? "production" : "sandbox",
+                });
+                cashfree.checkout({
+                    paymentSessionId: data.payment_session_id
+                });
             } else if (data.error) {
                 throw new Error(data.error)
             }
