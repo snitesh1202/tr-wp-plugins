@@ -36,7 +36,7 @@ export async function sendPurchaseEmail({
   `;
 
   try {
-    const response = await fetch('https://api.sender.net/v2/emails', {
+    const response = await fetch('https://api.sender.net/v2/message/send', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${senderApiToken}`,
@@ -48,12 +48,10 @@ export async function sendPurchaseEmail({
           email: 'info@thoughtsrefilling.com', // Updated to match user's apparent domain
           name: 'PluginMarket',
         },
-        to: [
-          {
-            email: email,
-            name: name,
-          },
-        ],
+        to: {
+          email: email,
+          name: name,
+        },
         subject: `Your License Key for ${pluginName}`,
         html: htmlContent,
       }),
