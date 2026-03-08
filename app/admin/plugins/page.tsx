@@ -243,7 +243,7 @@ export default function AdminPluginsPage() {
                                             </span>
                                         </td>
                                         <td className="px-8 py-6 text-center">
-                                            <div className="text-base font-black text-white font-heading tracking-tight">${plugin.price}</div>
+                                            <div className="text-base font-black text-white font-heading tracking-tight">₹{plugin.price}</div>
                                         </td>
                                         <td className="px-8 py-6 text-right">
                                             <div className="flex items-center justify-end gap-2">

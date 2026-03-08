@@ -50,7 +50,7 @@ export default function AdminDashboard() {
                     .eq('status', 'pending')
 
                 setStats([
-                    { label: "Total Revenue", value: `$${totalRevenue.toLocaleString()}`, change: "+12.5%", icon: DollarSign, color: "text-emerald-400", bg: "bg-emerald-500/10", trend: "up" },
+                    { label: "Total Revenue", value: `₹${totalRevenue.toLocaleString()}`, change: "+12.5%", icon: DollarSign, color: "text-emerald-400", bg: "bg-emerald-500/10", trend: "up" },
                     { label: "Total Downloads", value: totalDownloads.toLocaleString(), change: "+5.2%", icon: Download, color: "text-blue-400", bg: "bg-blue-500/10", trend: "up" },
                     { label: "Active Nodes", value: activeCount?.toString() || "0", change: "-2.4%", icon: Users, color: "text-amber-400", bg: "bg-amber-500/10", trend: "down" },
                     { label: "Pending Orders", value: updateCount?.toString() || "0", change: "New", icon: Package, color: "text-purple-400", bg: "bg-purple-500/10", trend: "neutral" },
@@ -77,7 +77,7 @@ export default function AdminDashboard() {
                         customer: order.buyer_name,
                         email: order.buyer_email,
                         plugin: (order.plugins as any)?.name || 'Unknown Plugin',
-                        amount: `$${Number(order.amount).toLocaleString()}`,
+                        amount: `₹${Number(order.amount).toLocaleString()}`,
                         status: order.status.charAt(0).toUpperCase() + order.status.slice(1),
                         date: new Date(order.created_at).toLocaleDateString()
                     })))

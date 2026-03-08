@@ -50,7 +50,7 @@ const PluginCard = ({ name, slug, description, price, downloads, rating, version
             <div className="flex items-center justify-between border-t border-white/5 pt-6">
                 <div className="flex flex-col">
                     <span className="text-xs text-white/30 font-bold uppercase tracking-wider mb-1">Price</span>
-                    <span className="text-xl font-black text-white">${price}</span>
+                    <span className="text-xl font-black text-white">₹{price}</span>
                 </div>
 
                 <div className="flex flex-col items-end">

@@ -1,9 +1,9 @@
-import { Cashfree } from "cashfree-pg";
+import { Cashfree, CFEnvironment } from "cashfree-pg";
 
 const cashfree = new Cashfree(
     process.env.NODE_ENV === "production"
-        ? "PRODUCTION" as any
-        : "SANDBOX" as any,
+        ? CFEnvironment.PRODUCTION
+        : CFEnvironment.SANDBOX,
     process.env.CASHFREE_APP_ID,
     process.env.CASHFREE_SECRET_KEY
 );

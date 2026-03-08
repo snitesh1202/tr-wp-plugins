@@ -185,7 +185,7 @@ export default function AdminOrdersPage() {
                                         </td>
                                         <td className="px-8 py-6 text-right">
                                             <div className="flex flex-col items-end">
-                                                <span className="text-base font-black text-white font-heading tracking-tight">${Number(order.amount).toLocaleString()}</span>
+                                                <span className="text-base font-black text-white font-heading tracking-tight">₹{Number(order.amount).toLocaleString()}</span>
                                                 <span className={cn(
                                                     "text-[10px] font-black uppercase tracking-widest",
                                                     order.status === 'paid' ? "text-emerald-400/60" : "text-white/20"

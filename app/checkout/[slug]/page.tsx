@@ -134,7 +134,7 @@ const CheckoutPage = () => {
                                 disabled={loading}
                                 className="w-full rounded-2xl bg-accent py-5 text-sm font-black text-white hover:bg-accent/90 transition-all hover:shadow-[0_0_30px_-5px_rgba(59,130,246,0.5)] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                             >
-                                {loading ? "Processing..." : `Pay $${plugin.price} via Cashfree`}
+                                {loading ? "Processing..." : `Pay ₹${plugin.price} via Cashfree`}
                             </button>
 
                             <div className="flex items-center justify-center gap-6 mt-8">
@@ -160,11 +160,11 @@ const CheckoutPage = () => {
                                         <div className="text-sm font-bold text-white">{plugin.name}</div>
                                         <div className="text-[10px] text-white/40">Lifetime License · 1 Site</div>
                                     </div>
-                                    <div className="text-sm font-bold text-white">${plugin.price}</div>
+                                    <div className="text-sm font-bold text-white">₹{plugin.price}</div>
                                 </div>
                                 <div className="border-t border-white/5 pt-6 flex justify-between items-baseline">
                                     <span className="text-sm font-bold text-white">Total</span>
-                                    <span className="text-3xl font-black text-accent">${plugin.price}</span>
+                                    <span className="text-3xl font-black text-accent">₹{plugin.price}</span>
                                 </div>
                             </div>
 

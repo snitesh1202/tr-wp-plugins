@@ -193,8 +193,8 @@ const PluginDetailPage = () => {
                                 </div>
                                 <div className="text-sm font-bold text-white/40 uppercase tracking-widest mb-2">Lifetime Access</div>
                                 <div className="flex items-baseline gap-2 mb-8">
-                                    <span className="text-5xl font-black font-heading">${plugin.price}</span>
-                                    <span className="text-white/30 font-medium">USD</span>
+                                    <span className="text-5xl font-black font-heading">₹{plugin.price}</span>
+                                    <span className="text-white/30 font-medium">INR</span>
                                 </div>
 
                                 <Link

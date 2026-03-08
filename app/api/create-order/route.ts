@@ -7,7 +7,7 @@ export async function POST(request: Request) {
 
         const orderRequest = {
             order_amount: parseFloat(amount),
-            order_currency: 'USD',
+            order_currency: 'INR',
             customer_details: {
                 customer_id: customerEmail.replace(/[^a-zA-Z0-9]/g, '_'), // Rough unique ID
                 customer_name: customerName,
@@ -24,11 +24,16 @@ export async function POST(request: Request) {
             }
         };
 
+        console.log('Creating Cashfree order:', JSON.stringify(orderRequest, null, 2));
         const response = await cashfree.PGCreateOrder(orderRequest);
+        console.log('Cashfree order created successfully:', response.data);
 
         return NextResponse.json(response.data);
     } catch (error: any) {
-        console.error('Cashfree order creation error:', error.response?.data || error.message);
-        return NextResponse.json({ error: 'Failed to create order' }, { status: 500 });
+        console.error('Cashfree order creation error:', error.response?.data || error.message || error);
+        return NextResponse.json(
+            { error: error.response?.data?.message || 'Failed to create order' },
+            { status: 500 }
+        );
     }
 }

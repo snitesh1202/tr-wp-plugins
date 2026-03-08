@@ -21,7 +21,7 @@ export function PluginForm({ initialData, onSubmit, isLoading }: PluginFormProps
         slug: initialData?.slug || "",
         category: initialData?.category || "SEO",
         version: initialData?.version || "1.0.0",
-        price: initialData?.price?.toString().replace('$', '') || "",
+        price: initialData?.price?.toString().replace('₹', '') || "",
         description: initialData?.description || "",
         status: initialData?.status || "Active"
     })
@@ -103,10 +103,10 @@ export function PluginForm({ initialData, onSubmit, isLoading }: PluginFormProps
                 <div className="space-y-3">
                     <label className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-white/30">
                         <DollarSign className="h-3 w-3" />
-                        Price (USD)
+                        Price (INR)
                     </label>
                     <div className="relative group">
-                        <span className="absolute left-5 top-1/2 -translate-y-1/2 text-white/20 font-bold">$</span>
+                        <span className="absolute left-5 top-1/2 -translate-y-1/2 text-white/20 font-bold">₹</span>
                         <input
                             required
                             type="number"
