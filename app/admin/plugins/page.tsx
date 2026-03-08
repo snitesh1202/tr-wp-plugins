@@ -52,9 +52,39 @@ export default function AdminPluginsPage() {
         )
     }, [plugins, searchQuery])
 
-    const handleFormSubmit = async (formData: any) => {
+    const uploadFile = async (file: File, bucket: string, folder: string): Promise<string | null> => {
+        const ext = file.name.split('.').pop()
+        const uniqueName = `${folder}/${Date.now()}.${ext}`
+        const { error } = await supabase.storage
+            .from(bucket)
+            .upload(uniqueName, file, { upsert: true })
+
+        if (error) {
+            console.error(`Upload error for ${bucket}:`, error)
+            return null
+        }
+
+        const { data } = supabase.storage.from(bucket).getPublicUrl(uniqueName)
+        return data.publicUrl
+    }
+
+    const handleFormSubmit = async (formData: any, files: { zipFile?: File; screenshotFile?: File }) => {
         setIsActionLoading(true)
         try {
+            // Upload files if provided
+            let zipPath = editingPlugin?.zip_path || null
+            let screenshots = editingPlugin?.screenshots || []
+
+            if (files.zipFile) {
+                const url = await uploadFile(files.zipFile, 'plugin-zips', formData.slug || editingPlugin?.slug)
+                if (url) zipPath = url
+            }
+
+            if (files.screenshotFile) {
+                const url = await uploadFile(files.screenshotFile, 'plugin-screenshots', formData.slug || editingPlugin?.slug)
+                if (url) screenshots = [url]
+            }
+
             if (editingPlugin) {
                 // Update
                 const { error } = await supabase
@@ -65,6 +95,8 @@ export default function AdminPluginsPage() {
                         version: formData.version,
                         price: parseFloat(formData.price),
                         description: formData.description,
+                        zip_path: zipPath,
+                        screenshots: screenshots,
                         updated_at: new Date().toISOString()
                     })
                     .eq('id', editingPlugin.id)
@@ -80,7 +112,9 @@ export default function AdminPluginsPage() {
                         category: formData.category,
                         version: formData.version,
                         price: parseFloat(formData.price),
-                        description: formData.description
+                        description: formData.description,
+                        zip_path: zipPath,
+                        screenshots: screenshots
                     }])
 
                 if (error) throw error

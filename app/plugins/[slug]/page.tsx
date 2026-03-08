@@ -128,9 +128,18 @@ const PluginDetailPage = () => {
                                         exit={{ opacity: 0, y: -10 }}
                                         className="space-y-12"
                                     >
-                                        <div className="rounded-3xl border border-white/5 bg-surface aspect-video flex items-center justify-center text-white/20 text-sm font-bold uppercase tracking-[0.2em]">
-                                            Plugin Interface Screenshot
-                                        </div>
+                                        {plugin.screenshots?.[0] ? (
+                                            // eslint-disable-next-line @next/next/no-img-element
+                                            <img
+                                                src={plugin.screenshots[0]}
+                                                alt={`${plugin.name} screenshot`}
+                                                className="w-full rounded-3xl border border-white/5 aspect-video object-cover"
+                                            />
+                                        ) : (
+                                            <div className="rounded-3xl border border-white/5 bg-surface aspect-video flex items-center justify-center text-white/20 text-sm font-bold uppercase tracking-[0.2em]">
+                                                No screenshot uploaded yet
+                                            </div>
+                                        )}
 
                                         <section>
                                             <h3 className="font-heading text-2xl font-bold mb-4">Description</h3>
