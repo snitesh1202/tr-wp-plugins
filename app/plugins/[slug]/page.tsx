@@ -1,34 +1,41 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
-import { useParams } from "next/navigation"
+import { useParams, useRouter } from "next/navigation"
 import { Check, Star, Download, Globe, Shield, Clock, ArrowLeft, ChevronRight } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
-
-const allPlugins = [
-    {
-        name: "SpeedMaster SEO",
-        slug: "speedmaster-seo",
-        description: "The lightweight SEO suite for WordPress that doesn't bloat your database. Lightning fast results.",
-        price: "49",
-        downloads: "2.4k",
-        rating: 4.9,
-        version: "2.1.0",
-        category: "SEO",
-        fullDescription: "SpeedMaster SEO is a high-performance SEO toolkit for WordPress. It focuses on critical SEO factors without the overhead of traditional plugins. Features include automated metadata, XML sitemaps, schema markup, and content analysis.",
-        features: ["Automated XML Sitemaps", "Schema.org Integration", "Meta Title & Description Editor", "Social Media Preview", "Lightweight Codebase"],
-        requirements: { wp: "5.6+", php: "7.4+" },
-        lastUpdated: "2 days ago"
-    },
-    // ... other data can be mocked as needed
-]
+import { createClient } from "@/lib/supabase/client"
 
 const PluginDetailPage = () => {
     const { slug } = useParams()
-    const plugin = allPlugins.find(p => p.slug === slug) || allPlugins[0] // Fallback for demo
+    const router = useRouter()
+    const supabase = createClient()
 
+    const [plugin, setPlugin] = useState<any>(null)
+    const [isLoading, setIsLoading] = useState(true)
     const [activeTab, setActiveTab] = useState("overview")
+
+    useEffect(() => {
+        const fetchPlugin = async () => {
+            setIsLoading(true)
+            const { data, error } = await supabase
+                .from('plugins')
+                .select('*')
+                .eq('slug', slug)
+                .single()
+
+            if (error || !data) {
+                console.error('Error fetching plugin:', error)
+                // Fallback or 404
+            } else {
+                setPlugin(data)
+            }
+            setIsLoading(false)
+        }
+
+        if (slug) fetchPlugin()
+    }, [slug])
 
     const tabs = [
         { id: "overview", label: "Overview" },
@@ -36,6 +43,23 @@ const PluginDetailPage = () => {
         { id: "reviews", label: "Reviews" },
         { id: "faq", label: "FAQ" },
     ]
+
+    if (isLoading) {
+        return (
+            <div className="pt-32 pb-24 min-h-screen bg-background flex items-center justify-center">
+                <div className="h-10 w-10 animate-spin rounded-full border-4 border-accent/20 border-t-accent" />
+            </div>
+        )
+    }
+
+    if (!plugin) {
+        return (
+            <div className="pt-32 pb-24 min-h-screen bg-background text-center">
+                <h1 className="text-4xl font-black text-white mb-4">Plugin not found</h1>
+                <Link href="/plugins" className="text-accent font-bold hover:underline">Back to all plugins</Link>
+            </div>
+        )
+    }
 
     return (
         <div className="pt-32 pb-24 min-h-screen bg-background text-white">
@@ -58,11 +82,11 @@ const PluginDetailPage = () => {
                                 <div className="flex items-center gap-6">
                                     <div className="flex items-center gap-1.5 text-accent">
                                         <Star className="h-4 w-4 fill-current" />
-                                        <span className="font-bold text-sm">{plugin.rating} (14 reviews)</span>
+                                        <span className="font-bold text-sm">4.9 (14 reviews)</span>
                                     </div>
                                     <div className="flex items-center gap-1.5 text-white/40 text-sm">
                                         <Download className="h-4 w-4" />
-                                        <span className="font-bold">{plugin.downloads} downloads</span>
+                                        <span className="font-bold">{plugin.downloads || 0} downloads</span>
                                     </div>
                                     <div className="rounded-full bg-white/5 border border-white/10 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-white/60">
                                         v{plugin.version}
@@ -111,14 +135,14 @@ const PluginDetailPage = () => {
                                         <section>
                                             <h3 className="font-heading text-2xl font-bold mb-4">Description</h3>
                                             <p className="text-white/60 leading-relaxed font-body text-lg">
-                                                {plugin.fullDescription}
+                                                {plugin.description || "No description provided."}
                                             </p>
                                         </section>
 
                                         <section>
                                             <h3 className="font-heading text-2xl font-bold mb-6">Key Features</h3>
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                {plugin.features.map((feature) => (
+                                                {(plugin.features || ["Performance Optimized", "Regular Updates", "Premium Support", "Easy Configuration"]).map((feature: string) => (
                                                     <div key={feature} className="flex items-center gap-3 p-4 rounded-2xl bg-white/5 border border-white/5">
                                                         <div className="flex h-6 w-6 items-center justify-center rounded-full bg-success/20 text-success">
                                                             <Check className="h-3.5 w-3.5" />
@@ -141,13 +165,17 @@ const PluginDetailPage = () => {
                                         <div className="border-l-2 border-accent/20 pl-8 relative">
                                             <div className="absolute left-[-9px] top-0 h-4 w-4 rounded-full bg-accent border-4 border-background" />
                                             <div className="mb-2 flex items-center gap-4">
-                                                <span className="text-xl font-black">v2.1.0</span>
-                                                <span className="text-xs text-white/40 font-bold uppercase">{plugin.lastUpdated}</span>
+                                                <span className="text-xl font-black">v{plugin.version}</span>
+                                                <span className="text-xs text-white/40 font-bold uppercase">Latest version</span>
                                             </div>
                                             <ul className="space-y-2 text-white/60 text-sm list-disc list-inside">
-                                                <li>Fixed compatibility issue with PHP 8.2</li>
-                                                <li>Improved sitemap generation speed by 40%</li>
-                                                <li>Added support for custom post type schema</li>
+                                                {plugin.changelog ? (
+                                                    typeof plugin.changelog === 'string' ? <li>{plugin.changelog}</li> :
+                                                        Array.isArray(plugin.changelog) ? plugin.changelog.map((item: string, i: number) => <li key={i}>{item}</li>) :
+                                                            <li>Stable release</li>
+                                                ) : (
+                                                    <li>Initial stable release</li>
+                                                )}
                                             </ul>
                                         </div>
                                     </motion.div>
@@ -195,11 +223,11 @@ const PluginDetailPage = () => {
                                 <div className="mt-8 pt-8 border-t border-white/5 grid grid-cols-2 gap-4">
                                     <div>
                                         <div className="text-[10px] font-bold text-white/30 uppercase mb-1">WP Version</div>
-                                        <div className="text-sm font-bold">{plugin.requirements.wp}</div>
+                                        <div className="text-sm font-bold">5.6+</div>
                                     </div>
                                     <div>
                                         <div className="text-[10px] font-bold text-white/30 uppercase mb-1">PHP Version</div>
-                                        <div className="text-sm font-bold">{plugin.requirements.php}</div>
+                                        <div className="text-sm font-bold">7.4+</div>
                                     </div>
                                 </div>
                             </div>

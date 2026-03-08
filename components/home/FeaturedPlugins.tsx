@@ -1,39 +1,21 @@
 import PluginCard from "../ui/PluginCard"
+import { createClient } from "@/lib/supabase/server"
 
-const demoPlugins = [
-    {
-        name: "SpeedMaster SEO",
-        slug: "speedmaster-seo",
-        description: "The lightweight SEO suite for WordPress that doesn't bloat your database. Lightning fast results.",
-        price: "49",
-        downloads: "2.4k",
-        rating: 4.9,
-        version: "2.1.0",
-        category: "SEO"
-    },
-    {
-        name: "SecureFlow Shield",
-        slug: "secureflow-shield",
-        description: "Enterprise-grade security simplified. Protect your site from brute force and malware with one click.",
-        price: "59",
-        downloads: "1.8k",
-        rating: 5.0,
-        version: "1.4.2",
-        category: "Security"
-    },
-    {
-        name: "FormCraft Pro",
-        slug: "formcraft-pro",
-        description: "Build beautiful, high-converting forms in seconds. Drag-and-drop simplicity with advanced logic.",
-        price: "39",
-        downloads: "3.1k",
-        rating: 4.8,
-        version: "3.0.1",
-        category: "Forms"
+const FeaturedPlugins = async () => {
+    const supabase = await createClient()
+    const { data: plugins, error } = await supabase
+        .from('plugins')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(3)
+
+    if (error) {
+        console.error('Error fetching featured plugins:', error)
+        return null
     }
-]
 
-const FeaturedPlugins = () => {
+    if (!plugins || plugins.length === 0) return null
+
     return (
         <section className="py-24">
             <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -52,8 +34,13 @@ const FeaturedPlugins = () => {
                 </div>
 
                 <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
-                    {demoPlugins.map((plugin) => (
-                        <PluginCard key={plugin.slug} {...plugin} />
+                    {plugins.map((plugin) => (
+                        <PluginCard
+                            key={plugin.id}
+                            {...plugin}
+                            downloads={plugin.downloads?.toString() || "0"}
+                            rating={4.9} // Mock rating
+                        />
                     ))}
                 </div>
             </div>

@@ -1,38 +1,55 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useParams, useRouter } from "next/navigation"
 import Link from "next/link"
 import { ArrowLeft, Shield, Lock, CreditCard } from "lucide-react"
-
-const allPlugins = [
-    { name: "SpeedMaster SEO", slug: "speedmaster-seo", price: "49" },
-    { name: "SecureFlow Shield", slug: "secureflow-shield", price: "59" },
-    { name: "FormCraft Pro", slug: "formcraft-pro", price: "39" },
-    // ... others
-]
+import { createClient } from "@/lib/supabase/client"
 
 const CheckoutPage = () => {
     const { slug } = useParams()
     const router = useRouter()
-    const plugin = allPlugins.find(p => p.slug === slug) || allPlugins[0]
+    const supabase = createClient()
 
+    const [plugin, setPlugin] = useState<any>(null)
     const [loading, setLoading] = useState(false)
+    const [isPageLoading, setIsPageLoading] = useState(true)
     const [formData, setFormData] = useState({
         name: "",
         email: "",
     })
 
+    useEffect(() => {
+        const fetchPlugin = async () => {
+            setIsPageLoading(true)
+            const { data, error } = await supabase
+                .from('plugins')
+                .select('*')
+                .eq('slug', slug)
+                .single()
+
+            if (error || !data) {
+                console.error('Error fetching plugin:', error)
+            } else {
+                setPlugin(data)
+            }
+            setIsPageLoading(false)
+        }
+
+        if (slug) fetchPlugin()
+    }, [slug])
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
-        setLoading(true)
+        if (!plugin) return
 
+        setLoading(true)
         try {
             const response = await fetch("/api/create-order", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    pluginId: plugin.slug, // Using slug as ID for simplistic demo
+                    pluginId: plugin.id, // Using real UUID from DB
                     pluginName: plugin.name,
                     amount: plugin.price,
                     customerName: formData.name,
@@ -43,9 +60,9 @@ const CheckoutPage = () => {
             const data = await response.json()
 
             if (data.payment_session_id) {
-                // Redirect to Cashfree checkout (Simplified for demo)
-                // In reality, you'd use the Cashfree SDK to open the checkout
                 window.location.href = `https://payments.cashfree.com/checkouts/v1/${data.payment_session_id}`
+            } else if (data.error) {
+                throw new Error(data.error)
             }
         } catch (error) {
             console.error("Checkout error:", error)
@@ -53,6 +70,23 @@ const CheckoutPage = () => {
         } finally {
             setLoading(false)
         }
+    }
+
+    if (isPageLoading) {
+        return (
+            <div className="pt-32 pb-24 min-h-screen bg-background flex items-center justify-center">
+                <div className="h-10 w-10 animate-spin rounded-full border-4 border-accent/20 border-t-accent" />
+            </div>
+        )
+    }
+
+    if (!plugin) {
+        return (
+            <div className="pt-32 pb-24 min-h-screen bg-background text-center">
+                <h1 className="text-4xl font-black text-white mb-4">Plugin not found</h1>
+                <Link href="/plugins" className="text-accent font-bold hover:underline">Back to plugins</Link>
+            </div>
+        )
     }
 
     return (

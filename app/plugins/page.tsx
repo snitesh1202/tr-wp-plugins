@@ -1,69 +1,40 @@
 "use client"
 
-import { useState, useEffect, Suspense } from "react"
+import { useState, useEffect, Suspense, useMemo } from "react"
 import { useSearchParams } from "next/navigation"
 import PluginCard from "@/components/ui/PluginCard"
 import { Search, Filter, ChevronDown } from "lucide-react"
-
-const allPlugins = [
-    {
-        name: "SpeedMaster SEO",
-        slug: "speedmaster-seo",
-        description: "The lightweight SEO suite for WordPress that doesn't bloat your database. Lightning fast results.",
-        price: "49",
-        downloads: "2.4k",
-        rating: 4.9,
-        version: "2.1.0",
-        category: "SEO"
-    },
-    {
-        name: "SecureFlow Shield",
-        slug: "secureflow-shield",
-        description: "Enterprise-grade security simplified. Protect your site from brute force and malware with one click.",
-        price: "59",
-        downloads: "1.8k",
-        rating: 5.0,
-        version: "1.4.2",
-        category: "Security"
-    },
-    {
-        name: "FormCraft Pro",
-        slug: "formcraft-pro",
-        description: "Build beautiful, high-converting forms in seconds. Drag-and-drop simplicity with advanced logic.",
-        price: "39",
-        downloads: "3.1k",
-        rating: 4.8,
-        version: "3.0.1",
-        category: "Forms"
-    },
-    {
-        name: "WooAnalytics Hub",
-        slug: "woo-analytics",
-        description: "Advanced analytics for your WooCommerce store. Understand your customers and boost sales.",
-        price: "69",
-        downloads: "900",
-        rating: 4.7,
-        version: "1.0.5",
-        category: "WooCommerce"
-    },
-    {
-        name: "AssetCleanup Mini",
-        slug: "asset-cleanup",
-        description: "Remove unnecessary CSS and JS files from your pages to achieve perfect Core Web Vitals.",
-        price: "29",
-        downloads: "5.2k",
-        rating: 4.9,
-        version: "4.2.0",
-        category: "Performance"
-    }
-]
+import { createClient } from "@/lib/supabase/client"
 
 const categories = ["All", "SEO", "Security", "Forms", "WooCommerce", "Performance"]
 
 function PluginsContent() {
+    const supabase = createClient()
     const searchParams = useSearchParams()
+
+    const [plugins, setPlugins] = useState<any[]>([])
+    const [isLoading, setIsLoading] = useState(true)
     const [selectedCategory, setSelectedCategory] = useState("All")
     const [searchQuery, setSearchQuery] = useState("")
+
+    useEffect(() => {
+        const fetchPlugins = async () => {
+            setIsLoading(true)
+            const { data, error } = await supabase
+                .from('plugins')
+                .select('*')
+                .order('created_at', { ascending: false })
+
+            if (error) {
+                console.error('Error fetching plugins:', error)
+            } else {
+                setPlugins(data || [])
+            }
+            setIsLoading(false)
+        }
+
+        fetchPlugins()
+    }, [])
 
     useEffect(() => {
         const query = searchParams.get("search")
@@ -72,12 +43,14 @@ function PluginsContent() {
         }
     }, [searchParams])
 
-    const filteredPlugins = allPlugins.filter((plugin) => {
-        const matchesCategory = selectedCategory === "All" || plugin.category === selectedCategory
-        const matchesSearch = plugin.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            plugin.description.toLowerCase().includes(searchQuery.toLowerCase())
-        return matchesCategory && matchesSearch
-    })
+    const filteredPlugins = useMemo(() => {
+        return plugins.filter((plugin) => {
+            const matchesCategory = selectedCategory === "All" || plugin.category === selectedCategory
+            const matchesSearch = plugin.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                (plugin.description && plugin.description.toLowerCase().includes(searchQuery.toLowerCase()))
+            return matchesCategory && matchesSearch
+        })
+    }, [plugins, selectedCategory, searchQuery])
 
     return (
         <div className="pt-32 pb-24">
@@ -130,10 +103,21 @@ function PluginsContent() {
                             </div>
                         </div>
 
-                        {filteredPlugins.length > 0 ? (
+                        {isLoading ? (
+                            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+                                {[1, 2, 3, 4].map((n) => (
+                                    <div key={n} className="h-64 bg-surface/50 animate-pulse rounded-3xl border border-white/5" />
+                                ))}
+                            </div>
+                        ) : filteredPlugins.length > 0 ? (
                             <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
                                 {filteredPlugins.map((plugin) => (
-                                    <PluginCard key={plugin.slug} {...plugin} />
+                                    <PluginCard
+                                        key={plugin.id}
+                                        {...plugin}
+                                        downloads={plugin.downloads?.toString() || "0"}
+                                        rating={4.9} // Mock rating for now
+                                    />
                                 ))}
                             </div>
                         ) : (
