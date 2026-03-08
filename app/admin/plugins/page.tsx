@@ -1,39 +1,133 @@
 "use client"
 
-import { useState, useMemo } from "react"
-import { Plus, Search, MoreVertical, Edit2, Trash2, Eye, Package, SlidersHorizontal, ChevronRight, X } from "lucide-react"
+import { useState, useMemo, useEffect } from "react"
+import { Plus, Search, MoreVertical, Edit2, Trash2, Eye, Package, SlidersHorizontal, ChevronRight, X, AlertTriangle } from "lucide-react"
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
+import { createClient } from "@/lib/supabase/client"
+import { Modal } from "@/components/ui/Modal"
+import { PluginForm } from "@/components/admin/PluginForm"
 
 function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs))
 }
 
-const mockPlugins = [
-    { id: "1", name: "SpeedMaster SEO", category: "SEO", version: "2.1.0", price: "$49", status: "Active" },
-    { id: "2", name: "SecureFlow Shield", category: "Security", version: "1.4.2", price: "$59", status: "Active" },
-    { id: "3", name: "FormCraft Pro", category: "Forms", version: "3.0.1", price: "$39", status: "Draft" },
-    { id: "4", name: "AssetCleanup Mini", category: "Performance", version: "4.2.0", price: "$29", status: "Active" },
-]
-
 export default function AdminPluginsPage() {
-    const [plugins, setPlugins] = useState(mockPlugins)
+    const supabase = createClient()
+    const [plugins, setPlugins] = useState<any[]>([])
+    const [isLoading, setIsLoading] = useState(true)
     const [searchQuery, setSearchQuery] = useState("")
+
+    // Modal states
+    const [isFormModalOpen, setIsFormModalOpen] = useState(false)
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
+    const [editingPlugin, setEditingPlugin] = useState<any>(null)
+    const [pluginToDelete, setPluginToDelete] = useState<any>(null)
+    const [isActionLoading, setIsActionLoading] = useState(false)
+
+    useEffect(() => {
+        fetchPlugins()
+    }, [])
+
+    const fetchPlugins = async () => {
+        setIsLoading(true)
+        const { data, error } = await supabase
+            .from('plugins')
+            .select('*')
+            .order('created_at', { ascending: false })
+
+        if (error) {
+            console.error('Error fetching plugins:', error)
+        } else {
+            setPlugins(data || [])
+        }
+        setIsLoading(false)
+    }
 
     const filteredPlugins = useMemo(() => {
         return plugins.filter(plugin =>
             plugin.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            plugin.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            (plugin.category && plugin.category.toLowerCase().includes(searchQuery.toLowerCase())) ||
             plugin.version.toLowerCase().includes(searchQuery.toLowerCase())
         )
     }, [plugins, searchQuery])
 
-    const handleAction = (action: string, pluginName: string) => {
-        alert(`${action} action triggered for: ${pluginName}`)
+    const handleFormSubmit = async (formData: any) => {
+        setIsActionLoading(true)
+        try {
+            if (editingPlugin) {
+                // Update
+                const { error } = await supabase
+                    .from('plugins')
+                    .update({
+                        name: formData.name,
+                        category: formData.category,
+                        version: formData.version,
+                        price: parseFloat(formData.price),
+                        description: formData.description,
+                        updated_at: new Date().toISOString()
+                    })
+                    .eq('id', editingPlugin.id)
+
+                if (error) throw error
+            } else {
+                // Create
+                const { error } = await supabase
+                    .from('plugins')
+                    .insert([{
+                        name: formData.name,
+                        slug: formData.slug,
+                        category: formData.category,
+                        version: formData.version,
+                        price: parseFloat(formData.price),
+                        description: formData.description
+                    }])
+
+                if (error) throw error
+            }
+
+            await fetchPlugins()
+            setIsFormModalOpen(false)
+            setEditingPlugin(null)
+        } catch (error) {
+            console.error('Error saving plugin:', error)
+            alert('Failed to save plugin. Please try again.')
+        } finally {
+            setIsActionLoading(false)
+        }
     }
 
-    const handleAddPlugin = () => {
-        alert("Opening 'Add New Plugin' workflow...")
+    const handleDelete = async () => {
+        if (!pluginToDelete) return
+
+        setIsActionLoading(true)
+        try {
+            const { error } = await supabase
+                .from('plugins')
+                .delete()
+                .eq('id', pluginToDelete.id)
+
+            if (error) throw error
+
+            await fetchPlugins()
+            setIsDeleteModalOpen(false)
+            setPluginToDelete(null)
+        } catch (error) {
+            console.error('Error deleting plugin:', error)
+            alert('Failed to delete plugin.')
+        } finally {
+            setIsActionLoading(false)
+        }
+    }
+
+    const openEditModal = (plugin: any) => {
+        setEditingPlugin(plugin)
+        setIsFormModalOpen(true)
+    }
+
+    const openDeleteModal = (plugin: any) => {
+        setPluginToDelete(plugin)
+        setIsDeleteModalOpen(true)
     }
 
     return (
@@ -52,7 +146,10 @@ export default function AdminPluginsPage() {
                     </p>
                 </div>
                 <button
-                    onClick={handleAddPlugin}
+                    onClick={() => {
+                        setEditingPlugin(null);
+                        setIsFormModalOpen(true);
+                    }}
                     className="flex items-center justify-center gap-3 rounded-2xl bg-accent px-8 py-5 text-sm font-black text-white hover:bg-accent/90 transition-all hover:shadow-[0_0_30px_-5px_rgba(59,130,246,0.6)] active:scale-95 group focus:outline-none focus:ring-2 focus:ring-accent/40"
                 >
                     <Plus className="h-5 w-5 transition-transform group-hover:rotate-90 duration-300" />
@@ -106,7 +203,16 @@ export default function AdminPluginsPage() {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-white/[0.05]">
-                            {filteredPlugins.length > 0 ? (
+                            {isLoading ? (
+                                <tr>
+                                    <td colSpan={5} className="px-8 py-20 text-center">
+                                        <div className="flex flex-col items-center gap-4">
+                                            <div className="h-8 w-8 animate-spin rounded-full border-4 border-accent/20 border-t-accent" />
+                                            <span className="text-[10px] font-black uppercase tracking-widest text-white/20">Loading catalog...</span>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ) : filteredPlugins.length > 0 ? (
                                 filteredPlugins.map((plugin) => (
                                     <tr key={plugin.id} className="group hover:bg-white/[0.015] transition-all">
                                         <td className="px-8 py-6">
@@ -119,17 +225,16 @@ export default function AdminPluginsPage() {
                                                 <div className="flex flex-col gap-1">
                                                     <div className="text-sm font-black text-white tracking-tight group-hover:text-accent transition-colors">{plugin.name}</div>
                                                     <div className={cn(
-                                                        "w-fit rounded-full px-2 py-0.5 text-[9px] font-black uppercase tracking-wider",
-                                                        plugin.status === 'Active' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-amber-500/10 text-amber-400 underline decoration-amber-400/20 underline-offset-2'
+                                                        "w-fit rounded-full px-2 py-0.5 text-[9px] font-black uppercase tracking-wider bg-emerald-500/10 text-emerald-400"
                                                     )}>
-                                                        {plugin.status}
+                                                        Active
                                                     </div>
                                                 </div>
                                             </div>
                                         </td>
                                         <td className="px-8 py-6">
                                             <div className="inline-flex items-center gap-2 rounded-lg bg-white/[0.03] px-3 py-1.5 text-[11px] font-bold text-white/40 group-hover:text-white/60 transition-colors">
-                                                {plugin.category}
+                                                {plugin.category || 'Uncategorized'}
                                             </div>
                                         </td>
                                         <td className="px-8 py-6 text-center">
@@ -138,24 +243,24 @@ export default function AdminPluginsPage() {
                                             </span>
                                         </td>
                                         <td className="px-8 py-6 text-center">
-                                            <div className="text-base font-black text-white font-heading tracking-tight">{plugin.price}</div>
+                                            <div className="text-base font-black text-white font-heading tracking-tight">${plugin.price}</div>
                                         </td>
                                         <td className="px-8 py-6 text-right">
                                             <div className="flex items-center justify-end gap-2">
                                                 <button
-                                                    onClick={() => handleAction('View', plugin.name)}
+                                                    onClick={() => window.open(`/plugins/${plugin.slug}`, '_blank')}
                                                     className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/[0.03] text-white/30 hover:bg-accent/10 hover:text-accent transition-all cursor-pointer"
                                                 >
                                                     <Eye className="h-4 w-4" />
                                                 </button>
                                                 <button
-                                                    onClick={() => handleAction('Edit', plugin.name)}
+                                                    onClick={() => openEditModal(plugin)}
                                                     className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/[0.03] text-white/30 hover:bg-blue-500/10 hover:text-blue-400 transition-all cursor-pointer"
                                                 >
                                                     <Edit2 className="h-4 w-4" />
                                                 </button>
                                                 <button
-                                                    onClick={() => handleAction('Delete', plugin.name)}
+                                                    onClick={() => openDeleteModal(plugin)}
                                                     className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/[0.03] text-white/30 hover:bg-red-500/10 hover:text-red-400 transition-all cursor-pointer"
                                                 >
                                                     <Trash2 className="h-4 w-4" />
@@ -188,6 +293,55 @@ export default function AdminPluginsPage() {
                     </div>
                 </div>
             </div>
+
+            {/* Plugin Form Modal */}
+            <Modal
+                isOpen={isFormModalOpen}
+                onClose={() => setIsFormModalOpen(false)}
+                title={editingPlugin ? "Edit Plugin" : "Add New Plugin"}
+            >
+                <PluginForm
+                    initialData={editingPlugin}
+                    onSubmit={handleFormSubmit}
+                    isLoading={isActionLoading}
+                />
+            </Modal>
+
+            {/* Delete Confirmation Modal */}
+            <Modal
+                isOpen={isDeleteModalOpen}
+                onClose={() => setIsDeleteModalOpen(false)}
+                title="Confirm Deletion"
+                footer={
+                    <div className="flex items-center justify-end gap-4">
+                        <button
+                            onClick={() => setIsDeleteModalOpen(false)}
+                            className="px-6 py-3 rounded-xl text-xs font-black uppercase tracking-widest text-white/40 hover:text-white transition-colors"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            onClick={handleDelete}
+                            disabled={isActionLoading}
+                            className="bg-red-500 hover:bg-red-600 px-8 py-3 rounded-xl text-xs font-black uppercase tracking-widest text-white transition-all shadow-lg shadow-red-500/20 active:scale-95 disabled:opacity-50"
+                        >
+                            {isActionLoading ? "Deleting..." : "Delete Permanently"}
+                        </button>
+                    </div>
+                }
+            >
+                <div className="flex flex-col items-center gap-6 text-center py-4">
+                    <div className="h-20 w-20 rounded-3xl bg-red-500/10 flex items-center justify-center text-red-500">
+                        <AlertTriangle className="h-10 w-10" />
+                    </div>
+                    <div className="space-y-2">
+                        <h4 className="text-xl font-black text-white">Are you absolutely sure?</h4>
+                        <p className="text-sm text-white/40 leading-relaxed max-w-sm">
+                            You are about to delete <span className="text-white font-bold">"{pluginToDelete?.name}"</span>. This action is irreversible and will remove all associated data.
+                        </p>
+                    </div>
+                </div>
+            </Modal>
         </div>
     )
 }
