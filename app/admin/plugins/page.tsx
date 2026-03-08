@@ -61,7 +61,7 @@ export default function AdminPluginsPage() {
 
         if (error) {
             console.error(`Upload error for ${bucket}:`, error)
-            return null
+            throw new Error(`Could not upload to bucket '${bucket}'. Please ensure the bucket exists in your Supabase dashboard and has public policies.`)
         }
 
         const { data } = supabase.storage.from(bucket).getPublicUrl(uniqueName)
@@ -123,9 +123,9 @@ export default function AdminPluginsPage() {
             await fetchPlugins()
             setIsFormModalOpen(false)
             setEditingPlugin(null)
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error saving plugin:', error)
-            alert('Failed to save plugin. Please try again.')
+            alert(`Failed to save plugin: ${error.message || 'Unknown error'}`)
         } finally {
             setIsActionLoading(false)
         }
