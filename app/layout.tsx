@@ -1,9 +1,12 @@
+"use client"
+
 import type { Metadata } from "next";
 import { Plus_Jakarta_Sans, Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import PageTransition from "@/components/layout/PageTransition";
+import { usePathname } from "next/navigation";
 
 const plusJakarta = Plus_Jakarta_Sans({
   variable: "--font-plus-jakarta",
@@ -20,28 +23,26 @@ const jetbrainsMono = JetBrains_Mono({
   subsets: ["latin"],
 });
 
-export const metadata: Metadata = {
-  title: "Premium WordPress Plugins Marketplace",
-  description: "High-quality, one-time payment WordPress plugins for developers and businesses.",
-};
-
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const pathname = usePathname();
+  const isAdmin = pathname?.startsWith("/admin");
+
   return (
     <html lang="en" className="dark">
       <body
         className={`${plusJakarta.variable} ${inter.variable} ${jetbrainsMono.variable} font-inter bg-background text-white antialiased`}
       >
-        <Navbar />
+        {!isAdmin && <Navbar />}
         <PageTransition>
-          <main className="min-h-screen">
+          <main className={isAdmin ? "" : "min-h-screen pt-32 pb-16"}>
             {children}
           </main>
         </PageTransition>
-        <Footer />
+        {!isAdmin && <Footer />}
       </body>
     </html>
   );
