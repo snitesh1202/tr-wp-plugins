@@ -1,34 +1,121 @@
 "use client"
 
-import { DollarSign, Download, Users, Package, TrendingUp, ArrowUpRight, ArrowDownRight, Clock } from "lucide-react"
+import { useState, useEffect } from "react"
+import { DollarSign, Download, Users, Package, TrendingUp, ArrowUpRight, ArrowDownRight, Clock, Loader2 } from "lucide-react"
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
+import { createClient } from "@/lib/supabase/client"
 
 function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs))
 }
 
-const stats = [
-    { label: "Total Revenue", value: "$4,290", change: "+12.5%", icon: DollarSign, color: "text-emerald-400", bg: "bg-emerald-500/10", trend: "up" },
-    { label: "Total Downloads", value: "842", change: "+5.2%", icon: Download, color: "text-blue-400", bg: "bg-blue-500/10", trend: "up" },
-    { label: "Active Support", value: "14", change: "-2.4%", icon: Users, color: "text-amber-400", bg: "bg-amber-500/10", trend: "down" },
-    { label: "Plugin Updates", value: "3", change: "New", icon: Package, color: "text-purple-400", bg: "bg-purple-500/10", trend: "neutral" },
-]
-
-const recentOrders = [
-    { id: "ORD001", customer: "John Doe", email: "john@example.com", plugin: "SpeedMaster SEO", amount: "$49", status: "Completed", date: "2 mins ago" },
-    { id: "ORD002", customer: "Sarah Smith", email: "sarah@tech.io", plugin: "SecureFlow Shield", amount: "$59", status: "Completed", date: "45 mins ago" },
-    { id: "ORD003", customer: "Mike Johnson", email: "mike@dev.net", plugin: "FormCraft Pro", amount: "$39", status: "Pending", date: "2 hours ago" },
-    { id: "ORD004", customer: "Elena Ross", email: "elena@design.com", plugin: "SpeedMaster SEO", amount: "$49", status: "Completed", date: "5 hours ago" },
-]
-
 export default function AdminDashboard() {
+    const supabase = createClient()
+    const [isLoading, setIsLoading] = useState(true)
+    const [stats, setStats] = useState<any[]>([])
+    const [recentOrders, setRecentOrders] = useState<any[]>([])
+    const [successRate, setSuccessRate] = useState("0%")
+
+    useEffect(() => {
+        const fetchDashboardData = async () => {
+            setIsLoading(true)
+            try {
+                // 1. Fetch Stats
+                // Revenue from paid orders
+                const { data: revenueData } = await supabase
+                    .from('orders')
+                    .select('amount')
+                    .eq('status', 'paid')
+
+                const totalRevenue = revenueData?.reduce((sum, order) => sum + Number(order.amount), 0) || 0
+
+                // Total Downloads from plugins
+                const { data: pluginsData } = await supabase
+                    .from('plugins')
+                    .select('downloads')
+
+                const totalDownloads = pluginsData?.reduce((sum, plugin) => sum + (plugin.downloads || 0), 0) || 0
+
+                // Count of paid orders as 'Active Support' or similar metric
+                const { count: activeCount } = await supabase
+                    .from('orders')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('status', 'paid')
+
+                // Update counts (new/pending)
+                const { count: updateCount } = await supabase
+                    .from('orders')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('status', 'pending')
+
+                setStats([
+                    { label: "Total Revenue", value: `$${totalRevenue.toLocaleString()}`, change: "+12.5%", icon: DollarSign, color: "text-emerald-400", bg: "bg-emerald-500/10", trend: "up" },
+                    { label: "Total Downloads", value: totalDownloads.toLocaleString(), change: "+5.2%", icon: Download, color: "text-blue-400", bg: "bg-blue-500/10", trend: "up" },
+                    { label: "Active Nodes", value: activeCount?.toString() || "0", change: "-2.4%", icon: Users, color: "text-amber-400", bg: "bg-amber-500/10", trend: "down" },
+                    { label: "Pending Orders", value: updateCount?.toString() || "0", change: "New", icon: Package, color: "text-purple-400", bg: "bg-purple-500/10", trend: "neutral" },
+                ])
+
+                // 2. Fetch Recent Orders
+                const { data: orders } = await supabase
+                    .from('orders')
+                    .select(`
+                        id,
+                        buyer_name,
+                        buyer_email,
+                        amount,
+                        status,
+                        created_at,
+                        plugins (name)
+                    `)
+                    .order('created_at', { ascending: false })
+                    .limit(5)
+
+                if (orders) {
+                    setRecentOrders(orders.map(order => ({
+                        id: order.id.slice(0, 8),
+                        customer: order.buyer_name,
+                        email: order.buyer_email,
+                        plugin: (order.plugins as any)?.name || 'Unknown Plugin',
+                        amount: `$${Number(order.amount).toLocaleString()}`,
+                        status: order.status.charAt(0).toUpperCase() + order.status.slice(1),
+                        date: new Date(order.created_at).toLocaleDateString()
+                    })))
+                }
+
+                // 3. Success Rate
+                const { count: totalOrders } = await supabase.from('orders').select('*', { count: 'exact', head: true })
+                const { count: paidOrders } = await supabase.from('orders').select('*', { count: 'exact', head: true }).eq('status', 'paid')
+
+                if (totalOrders && totalOrders > 0) {
+                    const rate = ((paidOrders || 0) / totalOrders) * 100
+                    setSuccessRate(`${rate.toFixed(1)}%`)
+                }
+
+            } catch (error) {
+                console.error('Error loading dashboard data:', error)
+            } finally {
+                setIsLoading(false)
+            }
+        }
+
+        fetchDashboardData()
+    }, [])
+
     const handleStatClick = (label: string) => {
         alert(`Navigating to detailed ${label} analytics...`)
     }
 
     const handleOrderClick = (id: string) => {
         alert(`Viewing order: ${id}`)
+    }
+
+    if (isLoading) {
+        return (
+            <div className="flex h-[60vh] items-center justify-center">
+                <Loader2 className="h-8 w-8 animate-spin text-accent" />
+            </div>
+        )
     }
 
     return (
@@ -138,11 +225,13 @@ export default function AdminDashboard() {
                                             <td className="px-8 py-6">
                                                 <div className={cn(
                                                     "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[10px] font-black uppercase",
-                                                    order.status === 'Completed' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-amber-500/10 text-amber-400'
+                                                    order.status === 'Paid' ? 'bg-emerald-500/10 text-emerald-400' :
+                                                        order.status === 'Pending' ? 'bg-amber-500/10 text-amber-400' : 'bg-red-500/10 text-red-400'
                                                 )}>
                                                     <div className={cn(
                                                         "h-1 w-1 rounded-full",
-                                                        order.status === 'Completed' ? "bg-emerald-400" : "bg-amber-400"
+                                                        order.status === 'Paid' ? "bg-emerald-400" :
+                                                            order.status === 'Pending' ? "bg-amber-400" : "bg-red-400"
                                                     )} />
                                                     {order.status}
                                                 </div>
@@ -173,10 +262,10 @@ export default function AdminDashboard() {
                             <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-3xl bg-accent shadow-2xl shadow-accent/40 mb-6 group-hover:shadow-accent/60 transition-all">
                                 <TrendingUp className="h-10 w-10 text-white" />
                             </div>
-                            <div className="text-7xl font-black text-white font-heading tracking-tighter">14.2%</div>
+                            <div className="text-7xl font-black text-white font-heading tracking-tighter">{successRate}</div>
                             <div className="mx-auto flex w-fit items-center gap-2 rounded-full bg-emerald-500/10 px-4 py-2 text-[10px] font-black uppercase text-emerald-400">
                                 <ArrowUpRight className="h-3 w-3" />
-                                3.1% Since last week
+                                Real-time Data
                             </div>
                         </div>
                         {/* Glass overlay */}
@@ -187,3 +276,4 @@ export default function AdminDashboard() {
         </div>
     )
 }
+

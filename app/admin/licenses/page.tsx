@@ -1,34 +1,52 @@
 "use client"
 
-import { useState, useMemo } from "react"
-import { Search, Key, ShieldCheck, ShieldAlert, Copy, RefreshCw, User, Package, ExternalLink, MoreVertical, CheckCircle2, History, X } from "lucide-react"
+import { useState, useMemo, useEffect } from "react"
+import { Search, Key, ShieldCheck, ShieldAlert, Copy, RefreshCw, User, Package, ExternalLink, MoreVertical, CheckCircle2, History, X, Loader2 } from "lucide-react"
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
+import { createClient } from "@/lib/supabase/client"
 
 function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs))
 }
 
-const mockLicenses = [
-    { id: "lic-1", key: "TR-SEO-9421-XB82", owner: "John Doe", email: "john@example.com", plugin: "SpeedMaster SEO", status: "Active", activations: "1/1", expires: "Lifetime", created: "Mar 08, 2024" },
-    { id: "lic-2", key: "TR-SEC-8422-QR15", owner: "Sarah Smith", email: "sarah@tech.io", plugin: "SecureFlow Shield", status: "Active", activations: "1/5", expires: "Lifetime", created: "Mar 08, 2024" },
-    { id: "lic-3", key: "TR-FRM-8423-MK90", owner: "Mike Johnson", email: "mike@dev.net", plugin: "FormCraft Pro", status: "Inactive", activations: "0/1", expires: "Mar 08, 2025", created: "Mar 08, 2024" },
-    { id: "lic-4", key: "TR-SEO-9424-LX44", owner: "Elena Ross", email: "elena@design.com", plugin: "SpeedMaster SEO", status: "Active", activations: "1/1", expires: "Lifetime", created: "Mar 07, 2024" },
-    { id: "lic-5", key: "TR-AST-8425-DV12", owner: "David Chen", email: "david@startup.co", plugin: "AssetCleanup Mini", status: "Active", activations: "1/1", expires: "Lifetime", created: "Mar 07, 2024" },
-    { id: "lic-6", key: "TR-SEC-1620-LW02", owner: "Lisa Wang", email: "lisa@studio.com", plugin: "SecureFlow Shield", status: "Revoked", activations: "0/5", expires: "N/A", created: "Mar 07, 2024" },
-]
-
 export default function AdminLicensesPage() {
+    const supabase = createClient()
+    const [licenses, setLicenses] = useState<any[]>([])
+    const [isLoading, setIsLoading] = useState(true)
     const [searchQuery, setSearchQuery] = useState("")
 
+    useEffect(() => {
+        const fetchLicenses = async () => {
+            setIsLoading(true)
+            const { data, error } = await supabase
+                .from('licenses')
+                .select(`
+                    *,
+                    orders (buyer_name, buyer_email),
+                    plugins (name)
+                `)
+                .order('created_at', { ascending: false })
+
+            if (error) {
+                console.error('Error fetching licenses:', error)
+            } else {
+                setLicenses(data || [])
+            }
+            setIsLoading(false)
+        }
+
+        fetchLicenses()
+    }, [])
+
     const filteredLicenses = useMemo(() => {
-        return mockLicenses.filter(license =>
-            license.key.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            license.owner.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            license.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            license.plugin.toLowerCase().includes(searchQuery.toLowerCase())
+        return licenses.filter(license =>
+            license.license_key.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            (license.orders as any)?.buyer_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            (license.orders as any)?.buyer_email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            (license.plugins as any)?.name.toLowerCase().includes(searchQuery.toLowerCase())
         )
-    }, [searchQuery])
+    }, [licenses, searchQuery])
 
     const copyToClipboard = (text: string) => {
         navigator.clipboard.writeText(text)
@@ -98,7 +116,7 @@ export default function AdminLicensesPage() {
                 <div className="flex items-center gap-6">
                     <div className="flex flex-col items-end">
                         <span className="text-[10px] font-black text-white/20 uppercase tracking-[0.2em]">Active Nodes</span>
-                        <span className="text-sm font-black text-emerald-400">1,204 Verified</span>
+                        <span className="text-sm font-black text-emerald-400">{licenses.filter(l => !l.expires_at || new Date(l.expires_at) > new Date()).length} Verified</span>
                     </div>
                     <div className="h-8 w-px bg-white/[0.05]" />
                     <div className="flex items-center gap-2 text-white/20 text-[10px] font-black uppercase tracking-[0.2em]">
@@ -121,82 +139,92 @@ export default function AdminLicensesPage() {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-white/[0.05]">
-                            {filteredLicenses.length > 0 ? (
-                                filteredLicenses.map((license) => (
-                                    <tr key={license.id} className="group hover:bg-white/[0.015] transition-all">
-                                        <td className="px-8 py-6">
-                                            <div className="flex items-center gap-3">
-                                                <div className={cn(
-                                                    "flex h-9 w-9 items-center justify-center rounded-xl transition-all duration-500 group-hover:scale-110",
-                                                    license.status === 'Active' ? "bg-emerald-500/10 text-emerald-400" :
-                                                        license.status === 'Revoked' ? "bg-red-500/10 text-red-400" :
-                                                            "bg-white/[0.03] text-white/20"
-                                                )}>
-                                                    {license.status === 'Active' ? <ShieldCheck className="h-5 w-5" /> : <ShieldAlert className="h-5 w-5" />}
-                                                </div>
-                                                <div className="flex flex-col gap-1">
-                                                    <div className="flex items-center gap-2">
-                                                        <code className="text-[11px] font-black text-white/90 font-mono tracking-tight">{license.key}</code>
-                                                        <button
-                                                            onClick={() => copyToClipboard(license.key)}
-                                                            className="p-1.5 rounded-lg bg-white/[0.03] text-white/20 hover:text-accent hover:bg-accent/10 transition-all opacity-0 group-hover:opacity-100"
-                                                        >
-                                                            <Copy className="h-3 w-3" />
-                                                        </button>
+                            {isLoading ? (
+                                <tr>
+                                    <td colSpan={5} className="px-8 py-20 text-center">
+                                        <Loader2 className="h-8 w-8 animate-spin text-accent mx-auto" />
+                                    </td>
+                                </tr>
+                            ) : filteredLicenses.length > 0 ? (
+                                filteredLicenses.map((license) => {
+                                    const isExpired = license.expires_at && new Date(license.expires_at) < new Date()
+                                    const status = isExpired ? 'Expired' : 'Active'
+
+                                    return (
+                                        <tr key={license.id} className="group hover:bg-white/[0.015] transition-all">
+                                            <td className="px-8 py-6">
+                                                <div className="flex items-center gap-3">
+                                                    <div className={cn(
+                                                        "flex h-9 w-9 items-center justify-center rounded-xl transition-all duration-500 group-hover:scale-110",
+                                                        status === 'Active' ? "bg-emerald-500/10 text-emerald-400" :
+                                                            "bg-red-500/10 text-red-400"
+                                                    )}>
+                                                        {status === 'Active' ? <ShieldCheck className="h-5 w-5" /> : <ShieldAlert className="h-5 w-5" />}
                                                     </div>
-                                                    <span className="text-[9px] font-black uppercase tracking-widest text-white/20">Issued on {license.created}</span>
+                                                    <div className="flex flex-col gap-1">
+                                                        <div className="flex items-center gap-2">
+                                                            <code className="text-[11px] font-black text-white/90 font-mono tracking-tight">{license.license_key}</code>
+                                                            <button
+                                                                onClick={() => copyToClipboard(license.license_key)}
+                                                                className="p-1.5 rounded-lg bg-white/[0.03] text-white/20 hover:text-accent hover:bg-accent/10 transition-all opacity-0 group-hover:opacity-100"
+                                                            >
+                                                                <Copy className="h-3 w-3" />
+                                                            </button>
+                                                        </div>
+                                                        <span className="text-[9px] font-black uppercase tracking-widest text-white/20">Issued on {new Date(license.created_at).toLocaleDateString()}</span>
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        </td>
-                                        <td className="px-8 py-6">
-                                            <div className="flex items-center gap-3">
-                                                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/[0.03] text-white/20 group-hover:bg-white/[0.05] transition-colors">
-                                                    <User className="h-4 w-4" />
+                                            </td>
+                                            <td className="px-8 py-6">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/[0.03] text-white/20 group-hover:bg-white/[0.05] transition-colors">
+                                                        <User className="h-4 w-4" />
+                                                    </div>
+                                                    <div className="flex flex-col">
+                                                        <span className="text-sm font-bold text-white/80 group-hover:text-white transition-colors">{(license.orders as any)?.buyer_name}</span>
+                                                        <span className="text-[11px] text-white/20 font-medium group-hover:text-white/30 transition-colors lowercase italic">{(license.orders as any)?.buyer_email}</span>
+                                                    </div>
                                                 </div>
-                                                <div className="flex flex-col">
-                                                    <span className="text-sm font-bold text-white/80 group-hover:text-white transition-colors">{license.owner}</span>
-                                                    <span className="text-[11px] text-white/20 font-medium group-hover:text-white/30 transition-colors lowercase italic">{license.email}</span>
+                                            </td>
+                                            <td className="px-8 py-6">
+                                                <div className="flex items-center gap-2">
+                                                    <div className="h-1.5 w-1.5 rounded-full bg-accent/40" />
+                                                    <span className="text-sm font-semibold text-white/60 group-hover:text-white/80 transition-colors">{(license.plugins as any)?.name}</span>
                                                 </div>
-                                            </div>
-                                        </td>
-                                        <td className="px-8 py-6">
-                                            <div className="flex items-center gap-2">
-                                                <div className="h-1.5 w-1.5 rounded-full bg-accent/40" />
-                                                <span className="text-sm font-semibold text-white/60 group-hover:text-white/80 transition-colors">{license.plugin}</span>
-                                            </div>
-                                        </td>
-                                        <td className="px-8 py-6 text-center">
-                                            <div className="flex flex-col items-center gap-1">
-                                                <div className="flex h-1.5 w-12 overflow-hidden rounded-full bg-white/[0.03]">
-                                                    <div
-                                                        className={cn(
-                                                            "h-full rounded-full transition-all duration-1000",
-                                                            license.status === 'Active' ? "bg-accent" : "bg-white/10"
-                                                        )}
-                                                        style={{ width: license.activations.split('/')[0] === '1' ? '100%' : '0%' }}
-                                                    />
+                                            </td>
+                                            <td className="px-8 py-6 text-center">
+                                                <div className="flex flex-col items-center gap-1">
+                                                    <div className="flex h-1.5 w-12 overflow-hidden rounded-full bg-white/[0.03]">
+                                                        <div
+                                                            className={cn(
+                                                                "h-full rounded-full transition-all duration-1000",
+                                                                status === 'Active' ? "bg-accent" : "bg-white/10"
+                                                            )}
+                                                            style={{ width: `${(license.download_count / license.max_downloads) * 100}%` }}
+                                                        />
+                                                    </div>
+                                                    <span className="text-[10px] font-black text-white/30 uppercase tracking-widest">{license.download_count}/{license.max_downloads} Limit</span>
                                                 </div>
-                                                <span className="text-[10px] font-black text-white/30 uppercase tracking-widest">{license.activations} Limit</span>
-                                            </div>
-                                        </td>
-                                        <td className="px-8 py-6">
-                                            <div className="flex items-center justify-end gap-2">
-                                                <button
-                                                    onClick={() => handleAction('View', license.id)}
-                                                    className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/[0.03] text-white/30 hover:bg-accent/10 hover:text-accent transition-all cursor-pointer"
-                                                >
-                                                    <ExternalLink className="h-4 w-4" />
-                                                </button>
-                                                <button
-                                                    onClick={() => handleAction('Manage', license.id)}
-                                                    className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/[0.03] text-white/30 hover:bg-white/[0.1] hover:text-white transition-all cursor-pointer"
-                                                >
-                                                    <MoreVertical className="h-4 w-4" />
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))
+                                            </td>
+                                            <td className="px-8 py-6">
+                                                <div className="flex items-center justify-end gap-2">
+                                                    <button
+                                                        onClick={() => handleAction('View', license.id)}
+                                                        className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/[0.03] text-white/30 hover:bg-accent/10 hover:text-accent transition-all cursor-pointer"
+                                                    >
+                                                        <ExternalLink className="h-4 w-4" />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleAction('Manage', license.id)}
+                                                        className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/[0.03] text-white/30 hover:bg-white/[0.1] hover:text-white transition-all cursor-pointer"
+                                                    >
+                                                        <MoreVertical className="h-4 w-4" />
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    )
+                                })
                             ) : (
                                 <tr>
                                     <td colSpan={5} className="px-8 py-20 text-center text-white/20 font-medium">
@@ -218,10 +246,11 @@ export default function AdminLicensesPage() {
                         System fully operational. All hash keys verified.
                     </div>
                     <div className="flex items-center gap-2 text-xs font-black text-white/20 font-heading">
-                        Last sync: <span className="text-white/40 uppercase ml-1">Today at 17:34</span>
+                        Last sync: <span className="text-white/40 uppercase ml-1">Today at {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                     </div>
                 </div>
             </div>
         </div>
     )
 }
+

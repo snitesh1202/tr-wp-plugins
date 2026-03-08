@@ -1,33 +1,49 @@
 "use client"
 
-import { useState, useMemo } from "react"
-import { Search, ShoppingCart, Filter, Download, User, Package, Calendar, Clock, ChevronRight, X } from "lucide-react"
+import { useState, useMemo, useEffect } from "react"
+import { Search, ShoppingCart, Filter, Download, User, Package, Calendar, Clock, ChevronRight, X, Loader2 } from "lucide-react"
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
+import { createClient } from "@/lib/supabase/client"
 
 function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs))
 }
 
-const mockOrders = [
-    { id: "ORD-8421", customer: "John Doe", email: "john@example.com", plugin: "SpeedMaster SEO", amount: "$49", status: "Completed", date: "Mar 08, 2024", time: "14:20" },
-    { id: "ORD-8422", customer: "Sarah Smith", email: "sarah@tech.io", plugin: "SecureFlow Shield", amount: "$59", status: "Completed", date: "Mar 08, 2024", time: "13:45" },
-    { id: "ORD-8423", customer: "Mike Johnson", email: "mike@dev.net", plugin: "FormCraft Pro", amount: "$39", status: "Pending", date: "Mar 08, 2024", time: "11:12" },
-    { id: "ORD-8424", customer: "Elena Ross", email: "elena@design.com", plugin: "SpeedMaster SEO", amount: "$49", status: "Completed", date: "Mar 07, 2024", time: "22:05" },
-    { id: "ORD-8425", customer: "David Chen", email: "david@startup.co", plugin: "AssetCleanup Mini", amount: "$29", status: "Failed", date: "Mar 07, 2024", time: "19:30" },
-    { id: "ORD-8426", customer: "Lisa Wang", email: "lisa@studio.com", plugin: "SecureFlow Shield", amount: "$59", status: "Completed", date: "Mar 07, 2024", time: "16:20" },
-]
-
 export default function AdminOrdersPage() {
-    const [orders, setOrders] = useState(mockOrders)
+    const supabase = createClient()
+    const [orders, setOrders] = useState<any[]>([])
+    const [isLoading, setIsLoading] = useState(true)
     const [searchQuery, setSearchQuery] = useState("")
+
+    useEffect(() => {
+        const fetchOrders = async () => {
+            setIsLoading(true)
+            const { data, error } = await supabase
+                .from('orders')
+                .select(`
+                    *,
+                    plugins (name)
+                `)
+                .order('created_at', { ascending: false })
+
+            if (error) {
+                console.error('Error fetching orders:', error)
+            } else {
+                setOrders(data || [])
+            }
+            setIsLoading(false)
+        }
+
+        fetchOrders()
+    }, [])
 
     const filteredOrders = useMemo(() => {
         return orders.filter(order =>
             order.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            order.customer.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            order.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            order.plugin.toLowerCase().includes(searchQuery.toLowerCase())
+            order.buyer_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            order.buyer_email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            (order.plugins as any)?.name.toLowerCase().includes(searchQuery.toLowerCase())
         )
     }, [orders, searchQuery])
 
@@ -109,7 +125,13 @@ export default function AdminOrdersPage() {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-white/[0.05]">
-                            {filteredOrders.length > 0 ? (
+                            {isLoading ? (
+                                <tr>
+                                    <td colSpan={5} className="px-8 py-20 text-center">
+                                        <Loader2 className="h-8 w-8 animate-spin text-accent mx-auto" />
+                                    </td>
+                                </tr>
+                            ) : filteredOrders.length > 0 ? (
                                 filteredOrders.map((order) => (
                                     <tr
                                         key={order.id}
@@ -118,13 +140,13 @@ export default function AdminOrdersPage() {
                                     >
                                         <td className="px-8 py-6">
                                             <div className="flex flex-col gap-1">
-                                                <span className="text-sm font-black text-white group-hover:text-accent transition-colors">#{order.id}</span>
+                                                <span className="text-sm font-black text-white group-hover:text-accent transition-colors">#{order.id.slice(0, 8)}</span>
                                                 <div className="flex items-center gap-2 text-[10px] text-white/20 font-bold uppercase tracking-wider">
                                                     <Calendar className="h-3 w-3" />
-                                                    {order.date}
+                                                    {new Date(order.created_at).toLocaleDateString()}
                                                     <span className="h-1 w-1 rounded-full bg-white/10" />
                                                     <Clock className="h-3 w-3" />
-                                                    {order.time}
+                                                    {new Date(order.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                                 </div>
                                             </div>
                                         </td>
@@ -134,28 +156,28 @@ export default function AdminOrdersPage() {
                                                     <User className="h-4 w-4" />
                                                 </div>
                                                 <div className="flex flex-col">
-                                                    <span className="text-sm font-bold text-white/80 group-hover:text-white transition-colors">{order.customer}</span>
-                                                    <span className="text-[11px] text-white/20 font-medium lowercase italic group-hover:text-white/30 transition-colors">{order.email}</span>
+                                                    <span className="text-sm font-bold text-white/80 group-hover:text-white transition-colors">{order.buyer_name}</span>
+                                                    <span className="text-[11px] text-white/20 font-medium group-hover:text-white/30 transition-colors lowercase italic">{order.buyer_email}</span>
                                                 </div>
                                             </div>
                                         </td>
                                         <td className="px-8 py-6">
                                             <div className="flex items-center gap-2">
                                                 <Package className="h-4 w-4 text-white/20" />
-                                                <span className="text-sm font-semibold text-white/60 group-hover:text-white/80 transition-colors">{order.plugin}</span>
+                                                <span className="text-sm font-semibold text-white/60 group-hover:text-white/80 transition-colors">{(order.plugins as any)?.name}</span>
                                             </div>
                                         </td>
                                         <td className="px-8 py-6">
                                             <div className={cn(
                                                 "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[9px] font-black uppercase tracking-wider",
-                                                order.status === 'Completed' ? 'bg-emerald-500/10 text-emerald-400' :
-                                                    order.status === 'Pending' ? 'bg-amber-500/10 text-amber-400' :
+                                                order.status === 'paid' ? 'bg-emerald-500/10 text-emerald-400' :
+                                                    order.status === 'pending' ? 'bg-amber-500/10 text-amber-400' :
                                                         'bg-red-500/10 text-red-400'
                                             )}>
                                                 <div className={cn(
                                                     "h-1 w-1 rounded-full",
-                                                    order.status === 'Completed' ? "bg-emerald-400" :
-                                                        order.status === 'Pending' ? "bg-amber-400" :
+                                                    order.status === 'paid' ? "bg-emerald-400" :
+                                                        order.status === 'pending' ? "bg-amber-400" :
                                                             "bg-red-400"
                                                 )} />
                                                 {order.status}
@@ -163,8 +185,11 @@ export default function AdminOrdersPage() {
                                         </td>
                                         <td className="px-8 py-6 text-right">
                                             <div className="flex flex-col items-end">
-                                                <span className="text-base font-black text-white font-heading tracking-tight">{order.amount}</span>
-                                                <span className="text-[10px] text-emerald-400/60 font-black uppercase tracking-widest">Paid</span>
+                                                <span className="text-base font-black text-white font-heading tracking-tight">${Number(order.amount).toLocaleString()}</span>
+                                                <span className={cn(
+                                                    "text-[10px] font-black uppercase tracking-widest",
+                                                    order.status === 'paid' ? "text-emerald-400/60" : "text-white/20"
+                                                )}>{order.status === 'paid' ? 'Paid' : 'Unpaid'}</span>
                                             </div>
                                         </td>
                                     </tr>
@@ -191,26 +216,12 @@ export default function AdminOrdersPage() {
                             ))}
                         </div>
                         <p className="text-[10px] font-bold text-white/20 uppercase tracking-[0.2em] ml-2">
-                            Recent transactions from 14 unique locations
+                            Recent transactions from global customers
                         </p>
-                    </div>
-                    <div className="flex items-center gap-4">
-                        <button
-                            onClick={() => alert('Going to previous page...')}
-                            className="p-2 rounded-lg bg-white/[0.03] text-white/20 hover:text-white transition-colors disabled:opacity-30 flex items-center justify-center" disabled
-                        >
-                            <ChevronRight className="h-4 w-4 rotate-180" />
-                        </button>
-                        <span className="text-[10px] font-black text-white/40 uppercase tracking-widest">Page 1 of 12</span>
-                        <button
-                            onClick={() => alert('Going to next page...')}
-                            className="p-2 rounded-lg bg-white/[0.03] text-white/20 hover:text-white transition-colors flex items-center justify-center"
-                        >
-                            <ChevronRight className="h-4 w-4" />
-                        </button>
                     </div>
                 </div>
             </div>
         </div>
     )
 }
+
